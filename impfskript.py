@@ -82,8 +82,8 @@ headers=['date','dosen_kumulativ','dosen_differenz_zum_vortag',\
 
 data=pd.read_csv('downloaded.csv',sep='	',names=headers,header=0)
 today=date.today()
-last_day_data= today.strftime("%m_%d_%Y")
-#last_day_data=data.date[len(data)-1]
+#last_day_data= today.strftime("%m_%d_%Y")
+last_day_data=data.date[len(data)-1]
 
 header_supply=['date','impfstoff','region','dosen']
 data_supply=pd.read_csv('downloaded_lieferung.csv',sep='	',names=header_supply,header=0)
