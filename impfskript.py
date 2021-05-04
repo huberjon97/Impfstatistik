@@ -82,8 +82,8 @@ headers=['date','dosen_kumulativ','dosen_differenz_zum_vortag',\
 
 data=pd.read_csv('downloaded.csv',sep='	',names=headers,header=0)
 today=date.today()
-#last_day_data= today.strftime("%m_%d_%Y")
-last_day_data=data.date[len(data)-1]
+last_day_data= today.strftime("%m_%d_%Y")
+#last_day_data=data.date[len(data)-1]
 
 header_supply=['date','impfstoff','region','dosen']
 data_supply=pd.read_csv('downloaded_lieferung.csv',sep='	',names=header_supply,header=0)
@@ -270,16 +270,16 @@ else:
     
     """Wöchentliche Mittelwerte"""
     weeks=int(days/7)
-    rest_days=days%7
+    rest_days=days%7-1
     
     for i in range(weeks):
-        curr_mean=np.mean(data.dosen_differenz_zum_vortag[i*7:i*7+6])
+        curr_mean=np.mean(data.dosen_differenz_zum_vortag[(weeks-i)*7-6+rest_days:(weeks-i)*7+rest_days])
         for j in range(7):
-            data.loc[i*7+j,'mean_weekly']=curr_mean
-    for i in range(rest_days):
-        curr_mean=np.mean(data.dosen_differenz_zum_vortag[(weeks)*7:(weeks)*7+rest_days])
-        for j in range(rest_days):
-            data.loc[(weeks)*7+j,'mean_weekly']=curr_mean
+            data.loc[(weeks-i)*7-j+rest_days,'mean_weekly']=curr_mean
+    for i in range(rest_days+1):
+        curr_mean=np.mean(data.dosen_differenz_zum_vortag[:rest_days+1])
+        for j in range(rest_days+1):
+            data.loc[j,'mean_weekly']=curr_mean
     
     poly = ols("mean_weekly ~ 0+I(days**2)+I(days*3)+I(days**4)+I(days**5)", data)
     model = poly.fit()
