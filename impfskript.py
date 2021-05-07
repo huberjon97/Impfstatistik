@@ -19,7 +19,6 @@ from datetime import date
 import requests
 from scipy import stats
 from scipy.stats import norm,t,chi2,f
-import os
 
 
 
@@ -82,8 +81,8 @@ headers=['date','dosen_kumulativ','dosen_differenz_zum_vortag',\
 
 data=pd.read_csv('downloaded.csv',sep='	',names=headers,header=0)
 today=date.today()
-#last_day_data= today.strftime("%m_%d_%Y")
-last_day_data=data.date[len(data)-1]
+last_day_data= today.strftime("%m_%d_%Y")
+#last_day_data=data.date[len(data)-1]
 
 header_supply=['date','impfstoff','region','dosen']
 data_supply=pd.read_csv('downloaded_lieferung.csv',sep='	',names=header_supply,header=0)
@@ -391,10 +390,6 @@ else:
     plt.setp(ax3.xaxis.get_majorticklabels(), rotation=angle)
     fig1.tight_layout(pad=3.0)
     plt.savefig('Grafiken/Aktuelle_Impfstatistik.pdf')       
+    plt.savefig('C:/Users/aidac/Dropbox/Impfstatistik/Aktuelle_Impfstatistik.pdf')       
     # plt.savefig('Grafiken/Impfstatistik_'+data_date+'.pdf')       
-    # plt.savefig('C:/Users/aidac/Dropbox/Aktuelle_Impfstatistik.pdf')
-    
-        
-        
-        
         
