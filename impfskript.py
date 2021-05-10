@@ -19,7 +19,7 @@ from datetime import date
 import requests
 from scipy import stats
 from scipy.stats import norm,t,chi2,f
-
+from matplotlib.gridspec import GridSpec
 
 
 def conf_pred_band_ex(_regress_ex, _poly, _model, alpha=0.05):
@@ -81,8 +81,8 @@ headers=['date','dosen_kumulativ','dosen_differenz_zum_vortag',\
 
 data=pd.read_csv('downloaded.csv',sep='	',names=headers,header=0)
 today=date.today()
-#last_day_data= today.strftime("%m_%d_%Y")
-last_day_data=data.date[len(data)-1]
+last_day_data= today.strftime("%m_%d_%Y")
+#last_day_data=data.date[len(data)-1]
 
 header_supply=['date','impfstoff','region','dosen']
 data_supply=pd.read_csv('downloaded_lieferung.csv',sep='	',names=header_supply,header=0)
@@ -314,63 +314,71 @@ else:
     
     
     fig1=plt.figure(1,figsize=(10,25))
+    
+    gs = GridSpec(4, 2, figure=fig1)
+    
     fig1.suptitle("Impfstatistik mit Daten vom: "+data.date[current_day], fontsize=24)
-    ax1,ax2,ax3,ax4=fig1.subplots(4,1)
+    #ax1,ax2,ax3,ax4=fig1.subplots(4,2,1)
     
     
-    ax1.plot(data.date,data.dosen_kumulativ/1e6,label='Anzahl gesamt verabreichte Dosen')
-    ax1.text((current_day-current_day/12),data.dosen_kumulativ[current_day]/1e6,round(data.dosen_kumulativ[current_day]/1e6,3))
-    ax1.plot(data.date,data.personen_erst_kumulativ/1e6,label='Anzahl Erstimpfung')
-    ax1.text((current_day-current_day/12),data.personen_erst_kumulativ[current_day]/1e6,round(data.personen_erst_kumulativ[current_day]/1e6,3))
-    ax1.plot(data.date,data.personen_voll_kumulativ/1e6,label='Anzahl Zweitimpfung')
-    ax1.text((current_day-current_day/12),data.personen_voll_kumulativ[current_day]/1e6,round(data.personen_voll_kumulativ[current_day]/1e6,3))
-    #ax1.plot(())
     
-    ax1.bar(data_supply.date[16:],data_supply.dosen_kummulativ[16:]/1e6,label='Anzahl gesamte Lieferungen')
-    ax1.text((current_day-current_day/12),data_supply.dosen_kummulativ[len_supply-1]/1e6,round(data_supply.dosen_kummulativ[len_supply-1]/1e6,3))
+    pie_label=['Keine Impfung','Erstimpfung','Vollständige Impfung']
+    pie_values=[100-np.round(data.impf_quote_erst[current_day]*100,1),\
+                np.round(data.impf_quote_erst[current_day]*100-data.impf_quote_voll[current_day]*100,1),np.round(data.impf_quote_voll[current_day]*100,1)]
+    explode = (0, 0.1, 0.1,)
+    ax1 = fig1.add_subplot(gs[0, 0])
+    ax1.pie(pie_values,labels=pie_label,autopct='%0.1f%%',shadow=True,startangle=90,explode=explode)
+    ax1.set_title('Impffortschritt der Gesamtbevölkerung')
     
     
-    ax1.set_title("Durchgeführten Impfungen Kummulativ / Gelieferte Dosen kummulativ")
-    ax1.set_xlabel('Datum')
-    ax1.set_ylabel('Impfungen in Millionen')
-    ax1.legend()
-    percent='\n'.join(('Impfung Bevölkerung BRD in %:\n',\
-                      'Erstimpfung: %.2f '%(data.impf_quote_erst[current_day]*100, ),\
-                      'Vollständig:   %.2f'%(data.impf_quote_voll[current_day]*100, )))
-        
-    props = dict(boxstyle='square', facecolor='white', alpha=0.5)
-    ax1.text(0.015, 0.7, percent, transform=ax1.transAxes, fontsize=11,
-            verticalalignment='top', bbox=props)
-    ax1.grid(True)
+    
+    ax2 = fig1.add_subplot(gs[0, 1])
+    ax2.bar(x=['Biontech','Astrazeneca','Moderna','Johnson'],\
+                height=[max(data_supply.biontech_gesamt)/1e6,\
+                    max(data_supply.astra_gesamt)/1e6,\
+                    max(data_supply.moderna_gesamt)/1e6,\
+                    max(data_supply.johnson_gesamt)/1e6],\
+                    color='gray',width=0.4,\
+                    label="Gelieferte Dosen")
+    ax2.bar(x=['Biontech','Astrazeneca','Moderna','Johnson'],\
+                height=[data.dosen_biontech_kumulativ[days-1]/1e6,\
+                    data.dosen_astrazeneca_kumulativ[days-1]/1e6,\
+                    data.dosen_moderna_kumulativ[days-1]/1e6,\
+                    data.dosen_johnson_kumulativ[days-1]/1e6],\
+                    width=0.4,\
+                    color=['darkblue','darkgreen','darkorange','r'],\
+                    alpha=0.9,label="Verabreichte Dosen")
+       
+    
+    str_biontech_storag="{}%".format(round(biontech_storage_p,2))    
+    str_astra_storag="{}%".format(round(astra_storage_p,2))    
+    str_moderna_storag="{}%".format(round(moderna_storage_p,2))    
+    str_johnson_storag="{}%".format(round(johnson_storage_p,2))    
+    
+    
+    ax2.text(0.25,data.dosen_biontech_kumulativ[days-1]/1e6,str_biontech_storag,color='darkblue')
+    ax2.text(1.25,data.dosen_astrazeneca_kumulativ[days-1]/1e6,str_astra_storag,color='darkgreen')
+    ax2.text(2.25,data.dosen_moderna_kumulativ[days-1]/1e6,str_moderna_storag,color='darkorange')
+    ax2.text(3.25,data.dosen_johnson_kumulativ[days-1]/1e6,str_johnson_storag,color='r')
+    ax2.grid(True)
+    ax2.legend(['Gelieferte Dosen','Verabreichte Dosen'])
+    ax2.set_title('Gelieferte und Verabreichte Dosen')
+    ax2.set_ylabel('Anzahl Dosen in Mio')
+    ax2.set_xlabel('Hersteller')
+    
+    
     
     data_supply.loc[data_supply.date=='2020-12-26','date']='2020-12-27'
     width = 0.75  # the width of the bars
-    ax2.set_title('Lieferungen nach Hersteller in Mio.')
-    ax2.plot(data.date,np.zeros(len(data.date)))
-    rects1 = ax2.bar(data_supply.date , data_supply.biontech/1e6, width, label='Biontech')
-    rects2 = ax2.bar(data_supply.date , data_supply.moderna/1e6,width,bottom=data_supply.biontech/1e6, label='Moderna')
-    rects3 = ax2.bar(data_supply.date , data_supply.astra/1e6,width, bottom=data_supply.biontech/1e6+data_supply.moderna/1e6, label='Astrazeneca')
-    rects1 = ax2.bar(data_supply.date , data_supply.johnson/1e6, width, label='Johnson')
-    ax2.legend(loc=2)
-    ax2.set_xlabel('Datum')
-    ax2.set_ylabel('Lieferung in Mio.')
-    ax2.grid(True)
     
-    supply='\n'.join(('Lieferung gesamter Impfstoff in Mio:\n',\
-                      'Biontech:       %.2f '%(max(data_supply.biontech_gesamt)/1e6, ),\
-                      'Moderna:       %.2f '%(max(data_supply.moderna_gesamt)/1e6, ),\
-                      'Astrazeneca:  %.2f'%(max(data_supply.astra_gesamt)/1e6,),\
-                      'Johnson:        %.2f'%(max(data_supply.johnson_gesamt)/1e6,),))
+
+    
+    
         
-    props = dict(boxstyle='square', facecolor='white', alpha=0.5)
-    ax2.text(0.015, 0.75, supply, transform=ax2.transAxes, fontsize=11,
-            verticalalignment='top', bbox=props)
-    
-    
-    
+    ax3 = fig1.add_subplot(gs[1, :])
     ax3.set_title("Täglich verabreichte Dosen")
-    ax3.plot(data.date,data.dosen_differenz_zum_vortag/1e3,label='Tägliche geimpften Dosen')
-    ax3.step(data.date,data.mean_weekly/1e3,label='Wöchentlicher Durchschnitt der täglich geimpften Dosen')
+    ax3.plot(data.date,data.dosen_differenz_zum_vortag/1e3,label='Tägliche verabreichte Dosen')
+    ax3.step(data.date,data.mean_weekly/1e3,label='7-Tages Durchschnitt der täglich verabreichten Dosen')
     ax3.plot(data.date,prediction_plot.mean_weekly[0:days]/1e3,label='Ausgleichsfunktion')
     ax3.text((current_day-current_day/12),(data.mean_weekly[current_day]+0.025*data.mean_weekly[current_day])/1e3,round(data.mean_weekly[current_day]/1e3,3),color='orange')
     ax3.text((current_day-current_day/12),(data.mean_weekly[current_day]-0.1*data.mean_weekly[current_day])/1e3,round(prediction_plot.mean_weekly[current_day]/1e3,3),color='g')
@@ -381,65 +389,79 @@ else:
     # ax3.plot(df_date.date,(prediction_plot.mean_weekly - prediction_plot.prediction)/1e3)
     # ax3.text((current_day-current_day),prediction_plot.mean_weekly[current_day]/1e3,round(model.rsquared_adj,3))
     
-    adj=model.rsquared_adj
-    r_adj='\n'.join(("Adj Bestimmtheitsmaß: %2f"%(adj,),))
+    # adj=model.rsquared_adj
+    # r_adj='\n'.join(("Adj Bestimmtheitsmaß: %2f"%(adj,),))
     
-    props = dict(boxstyle='square', facecolor='white', alpha=0.5)
-    ax3.text(0.015,0.8,r_adj, transform=ax3.transAxes, fontsize=11,
-            verticalalignment='top', bbox=props)
+    # props = dict(boxstyle='square', facecolor='white', alpha=0.5)
+    # ax3.text(0.015,0.8,r_adj, transform=ax3.transAxes, fontsize=11,
+    #         verticalalignment='top', bbox=props)
     
     ax3.grid(True)
     ax3.set_xlabel('Datum')
     ax3.set_ylabel('Tägliche Impfungen in Tausend')
     
     
-    ax4.bar(x=['Biontech','Astrazeneca','Moderna','Johnson'],\
-                height=[max(data_supply.biontech_gesamt)/1e6,\
-                   max(data_supply.astra_gesamt)/1e6,\
-                   max(data_supply.moderna_gesamt)/1e6,\
-                   max(data_supply.johnson_gesamt)/1e6],\
-                    color='gray',width=0.4,\
-                    label="Gelieferte Dosen")
-    ax4.bar(x=['Biontech','Astrazeneca','Moderna','Johnson'],\
-                height=[data.dosen_biontech_kumulativ[days-1]/1e6,\
-                   data.dosen_astrazeneca_kumulativ[days-1]/1e6,\
-                   data.dosen_moderna_kumulativ[days-1]/1e6,\
-                   data.dosen_johnson_kumulativ[days-1]/1e6],\
-                    width=0.4,\
-                    color=['darkblue','darkgreen','darkorange','r'],\
-                    alpha=0.9,label="Verabreichte Dosen")
-    # str_biontech_storag="{}mio Dosen \n{}%".format(round(biontech_storage/1e6,3),round(biontech_storage_p,2))    
-    # str_astra_storag="{}mio Dosen \n{}%".format(round(astra_storage/1e6,3),round(astra_storage_p,2))    
-    # str_moderna_storag="{}mio Dosen \n{}%".format(round(moderna_storage/1e6,3),round(moderna_storage_p,2))    
-    # str_johnson_storag="{}mio Dosen \n{}%".format(round(johnson_storage/1e6,3),round(johnson_storage_p,2))    
+    ax4 = fig1.add_subplot(gs[2, :])
+    ax4.plot(data.date,data.dosen_kumulativ/1e6,label='Anzahl verabreichter Dosen gesamt')
+    ax4.text((current_day-current_day/12),data.dosen_kumulativ[current_day]/1e6,round(data.dosen_kumulativ[current_day]/1e6,3))
+    ax4.plot(data.date,data.personen_erst_kumulativ/1e6,label='Anzahl Erstimpfung')
+    ax4.text((current_day-current_day/12),data.personen_erst_kumulativ[current_day]/1e6,round(data.personen_erst_kumulativ[current_day]/1e6,3))
+    ax4.plot(data.date,data.personen_voll_kumulativ/1e6,label='Anzahl Zweitimpfung')
+    ax4.text((current_day-current_day/12),data.personen_voll_kumulativ[current_day]/1e6,round(data.personen_voll_kumulativ[current_day]/1e6,3))
+    #ax4.plot(())
     
-    str_biontech_storag="{}%".format(round(biontech_storage_p,2))    
-    str_astra_storag="{}%".format(round(astra_storage_p,2))    
-    str_moderna_storag="{}%".format(round(moderna_storage_p,2))    
-    str_johnson_storag="{}%".format(round(johnson_storage_p,2))    
+    ax4.bar(data_supply.date[16:],data_supply.dosen_kummulativ[16:]/1e6,label='Anzahl gesamte Lieferungen')
+    ax4.text((current_day-current_day/12),data_supply.dosen_kummulativ[len_supply-1]/1e6,round(data_supply.dosen_kummulativ[len_supply-1]/1e6,3))
     
     
-    ax4.text(0.25,data.dosen_biontech_kumulativ[days-1]/1e6,str_biontech_storag,color='darkblue')
-    ax4.text(1.25,data.dosen_astrazeneca_kumulativ[days-1]/1e6,str_astra_storag,color='darkgreen')
-    ax4.text(2.25,data.dosen_moderna_kumulativ[days-1]/1e6,str_moderna_storag,color='darkorange')
-    ax4.text(3.25,data.dosen_johnson_kumulativ[days-1]/1e6,str_johnson_storag,color='r')
+    ax4.set_title("Durchgeführten Impfungen Kummulativ / Gelieferte Dosen kummulativ")
+    ax4.set_xlabel('Datum')
+    ax4.set_ylabel('Impfungen in Millionen')
+    ax4.legend()
+    # percent='\n'.join(('Impfung Bevölkerung BRD in %:\n',\
+    #                   'Erstimpfung: %.2f '%(data.impf_quote_erst[current_day]*100, ),\
+    #                   'Vollständig:   %.2f'%(data.impf_quote_voll[current_day]*100, )))
+        
+    # props = dict(boxstyle='square', facecolor='white', alpha=0.5)
+    # ax4.text(0.015, 0.7, percent, transform=ax4.transAxes, fontsize=11,
+    #         verticalalignment='top', bbox=props)
     ax4.grid(True)
-    ax4.legend(['Gelieferte Dosen','Verabreichte Dosen'])
-    ax4.set_title('Gelieferte und Verabreichte Dosen')
-    ax4.set_ylabel('Anzahl Dosen in Mio')
-    ax4.set_xlabel('Hersteller')
     
+    ax5 = fig1.add_subplot(gs[3, :])
+    ax5.set_title('Lieferungen nach Hersteller in Mio.')
+    ax5.plot(data.date,np.zeros(len(data.date)))
+    rects1 = ax5.bar(data_supply.date , data_supply.biontech/1e6, width, label='Biontech')
+    rects2 = ax5.bar(data_supply.date , data_supply.moderna/1e6,width,bottom=data_supply.biontech/1e6, label='Moderna')
+    rects3 = ax5.bar(data_supply.date , data_supply.astra/1e6,width, bottom=data_supply.biontech/1e6+data_supply.moderna/1e6, label='Astrazeneca')
+    rects1 = ax5.bar(data_supply.date , data_supply.johnson/1e6, width, label='Johnson')
+    ax5.legend(loc=2)
+    ax5.set_xlabel('Datum')
+    ax5.set_ylabel('Lieferung in Mio.')
+    ax5.grid(True)
+    
+    supply='\n'.join(('Lieferung gesamter Impfstoff in Mio:\n',\
+                      'Biontech:       %.2f '%(max(data_supply.biontech_gesamt)/1e6, ),\
+                      'Astrazeneca: %.2f'%(max(data_supply.astra_gesamt)/1e6,),\
+                      'Moderna:       %.2f '%(max(data_supply.moderna_gesamt)/1e6, ),\
+                      'Johnson:         %.2f'%(max(data_supply.johnson_gesamt)/1e6,),))
+        
+    props = dict(boxstyle='square', facecolor='white', alpha=0.5)
+    ax5.text(0.015, 0.75, supply, transform=ax5.transAxes, fontsize=11,
+            verticalalignment='top', bbox=props)
+
+    
+ 
     
     num_xlabel=28
-    ax1.xaxis.set_major_locator(plt.MaxNLocator(num_xlabel))
-    ax2.xaxis.set_major_locator(plt.MaxNLocator(num_xlabel))
     ax3.xaxis.set_major_locator(plt.MaxNLocator(num_xlabel))
+    ax4.xaxis.set_major_locator(plt.MaxNLocator(num_xlabel))
+    ax5.xaxis.set_major_locator(plt.MaxNLocator(num_xlabel))
     
     #fig1.autofmt_xdate(rotation=45)  
     angle=90
-    plt.setp(ax1.xaxis.get_majorticklabels(), rotation=angle)
-    plt.setp(ax2.xaxis.get_majorticklabels(), rotation=angle)
     plt.setp(ax3.xaxis.get_majorticklabels(), rotation=angle)
+    plt.setp(ax4.xaxis.get_majorticklabels(), rotation=angle)
+    plt.setp(ax5.xaxis.get_majorticklabels(), rotation=angle)
     fig1.tight_layout(pad=3.0)
     plt.savefig('Grafiken/Aktuelle_Impfstatistik.pdf')       
     plt.savefig('C:/Users/aidac/Dropbox/Impfstatistik/Aktuelle_Impfstatistik.pdf')       
