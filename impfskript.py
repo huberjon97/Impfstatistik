@@ -300,9 +300,22 @@ else:
     #    conf_pred_band_ex(prediction_plot, poly, model, alpha=1-GAMMA)
     
     
-    fig1=plt.figure(1,figsize=(10,20))
+    """ Berechnung der aktuell gelagerten Dosen"""
+    biontech_storage_p=data.dosen_biontech_kumulativ[days-1]/max(data_supply.biontech_gesamt)*100;
+    astra_storage_p=data.dosen_astrazeneca_kumulativ[days-1]/max(data_supply.astra_gesamt)*100;
+    moderna_storage_p=data.dosen_moderna_kumulativ[days-1]/max(data_supply.moderna_gesamt)*100;
+    johnson_storage_p=data.dosen_johnson_kumulativ[days-1]/max(data_supply.johnson_gesamt)*100;
+    
+    biontech_storage=np.abs(data.dosen_biontech_kumulativ[days-1]-max(data_supply.biontech_gesamt))
+    astra_storage=np.abs(data.dosen_astrazeneca_kumulativ[days-1]-max(data_supply.astra_gesamt))
+    moderna_storage=np.abs(data.dosen_moderna_kumulativ[days-1]-max(data_supply.moderna_gesamt))
+    johnson_storage=np.abs(data.dosen_johnson_kumulativ[days-1]-max(data_supply.johnson_gesamt))
+    
+    
+    
+    fig1=plt.figure(1,figsize=(10,25))
     fig1.suptitle("Impfstatistik mit Daten vom: "+data.date[current_day], fontsize=24)
-    ax1,ax2,ax3=fig1.subplots(3,1)
+    ax1,ax2,ax3,ax4=fig1.subplots(4,1)
     
     
     ax1.plot(data.date,data.dosen_kumulativ/1e6,label='Anzahl gesamt verabreichte Dosen')
@@ -378,6 +391,45 @@ else:
     ax3.grid(True)
     ax3.set_xlabel('Datum')
     ax3.set_ylabel('Tägliche Impfungen in Tausend')
+    
+    
+    ax4.bar(x=['Biontech','Astrazeneca','Moderna','Johnson'],\
+                height=[max(data_supply.biontech_gesamt)/1e6,\
+                   max(data_supply.astra_gesamt)/1e6,\
+                   max(data_supply.moderna_gesamt)/1e6,\
+                   max(data_supply.johnson_gesamt)/1e6],\
+                    color='gray',width=0.4,\
+                    label="Gelieferte Dosen")
+    ax4.bar(x=['Biontech','Astrazeneca','Moderna','Johnson'],\
+                height=[data.dosen_biontech_kumulativ[days-1]/1e6,\
+                   data.dosen_astrazeneca_kumulativ[days-1]/1e6,\
+                   data.dosen_moderna_kumulativ[days-1]/1e6,\
+                   data.dosen_johnson_kumulativ[days-1]/1e6],\
+                    width=0.4,\
+                    color=['darkblue','darkgreen','darkorange','r'],\
+                    alpha=0.9,label="Verabreichte Dosen")
+    # str_biontech_storag="{}mio Dosen \n{}%".format(round(biontech_storage/1e6,3),round(biontech_storage_p,2))    
+    # str_astra_storag="{}mio Dosen \n{}%".format(round(astra_storage/1e6,3),round(astra_storage_p,2))    
+    # str_moderna_storag="{}mio Dosen \n{}%".format(round(moderna_storage/1e6,3),round(moderna_storage_p,2))    
+    # str_johnson_storag="{}mio Dosen \n{}%".format(round(johnson_storage/1e6,3),round(johnson_storage_p,2))    
+    
+    str_biontech_storag="{}%".format(round(biontech_storage_p,2))    
+    str_astra_storag="{}%".format(round(astra_storage_p,2))    
+    str_moderna_storag="{}%".format(round(moderna_storage_p,2))    
+    str_johnson_storag="{}%".format(round(johnson_storage_p,2))    
+    
+    
+    ax4.text(0.25,data.dosen_biontech_kumulativ[days-1]/1e6,str_biontech_storag,color='darkblue')
+    ax4.text(1.25,data.dosen_astrazeneca_kumulativ[days-1]/1e6,str_astra_storag,color='darkgreen')
+    ax4.text(2.25,data.dosen_moderna_kumulativ[days-1]/1e6,str_moderna_storag,color='darkorange')
+    ax4.text(3.25,data.dosen_johnson_kumulativ[days-1]/1e6,str_johnson_storag,color='r')
+    ax4.grid(True)
+    ax4.legend(['Gelieferte Dosen','Verabreichte Dosen'])
+    ax4.set_title('Gelieferte und Verabreichte Dosen')
+    ax4.set_ylabel('Anzahl Dosen in Mio')
+    ax4.set_xlabel('Hersteller')
+    
+    
     num_xlabel=28
     ax1.xaxis.set_major_locator(plt.MaxNLocator(num_xlabel))
     ax2.xaxis.set_major_locator(plt.MaxNLocator(num_xlabel))
