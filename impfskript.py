@@ -20,6 +20,8 @@ import requests
 from scipy import stats
 from scipy.stats import norm,t,chi2,f
 from matplotlib.gridspec import GridSpec
+import matplotlib.ticker as ticker
+
 
 
 def conf_pred_band_ex(_regress_ex, _poly, _model, alpha=0.05):
@@ -77,10 +79,12 @@ headers=['date','dosen_kumulativ','dosen_differenz_zum_vortag',\
          'dosen_biontech_erst_kumulativ','dosen_biontech_zweit_kumulativ',\
          'dosen_moderna_erst_kumulativ','dosen_moderna_zweit_kumulativ',\
          'dosen_astrazeneca_erst_kumulativ','dosen_astrazeneca_zweit_kumulativ']
-#data=pd.read_csv('germany_vaccinations_timeseries_v2.tsv',sep='	',names=headers,header=0)
 
 data=pd.read_csv('downloaded.csv',sep='	',names=headers,header=0)
+
 today=date.today()
+
+""" Entscheidung ob Test auf neue Daten oder nicht """
 last_day_data= today.strftime("%m_%d_%Y")
 #last_day_data=data.date[len(data)-1]
 
@@ -92,7 +96,7 @@ last_day_supply=data_supply.date[len(data_supply)-1]
 # Neue Daten herunterladen
 
 impfung_tsv_url='https://impfdashboard.de/static/data/germany_vaccinations_timeseries_v2.tsv'
-#print(impfung_tsv_url)
+
 req = requests.get(impfung_tsv_url)
 url_content = req.content
 csv_file = open('downloaded.csv', 'wb')
@@ -101,25 +105,16 @@ csv_file.close()
 
 
 lieferung_tsv_url='https://impfdashboard.de/static/data/germany_deliveries_timeseries_v2.tsv'
-#print(lieferung_tsv_url)
+
 req = requests.get(lieferung_tsv_url)
 url_content = req.content
 csv_file = open('downloaded_lieferung.csv', 'wb')
 csv_file.write(url_content)
 csv_file.close()
 
-today=date.today()
-data_date = today.strftime("%m_%d_%Y")
 
-# headers=['date','dosen_kumulativ','dosen_differenz_zum_vortag','dosen_erst_differenz_zum_vortag',\
-#          'dosen_zweit_differenz_zum_vortag','dosen_biontech_kumulativ','dosen_moderna_kumulativ',\
-#          'dosen_astrazeneca_kumulativ','personen_erst_kumulativ','personen_voll_kumulativ',\
-#          'impf_quote_erst','impf_quote_voll','indikation_alter_dosen','indikation_beruf_dosen',\
-#          'indikation_medizinisch_dosen','indikation_pflegeheim_dosen','indikation_alter_erst',\
-#          'indikation_beruf_erst','indikation_medizinisch_erst','indikation_pflegeheim_erst',\
-#          'indikation_alter_voll','indikation_beruf_voll','indikation_medizinisch_voll',\
-#          'indikation_pflegeheim_voll','dosen_dim_kumulativ','dosen_kbv_kumulativ']
-#data=pd.read_csv('germany_vaccinations_timeseries_v2.tsv',sep='	',names=headers,header=0)
+
+
 data=pd.read_csv('downloaded.csv',sep='	',names=headers,header=0)
 
 
@@ -157,13 +152,6 @@ else:
     df_date=pd.concat([df_date,df_date_concat])
     
     
-    # people=83e6
-    # percent_first=data.personen_erst_kumulativ[current_day]/people*100
-    # percent_full=data.personen_voll_kumulativ[current_day]/people*100
-    
-    
-    
-    #print(pd_data)
     
     len_supply=len(data_supply)
     cur_day=data_supply.date[0]
@@ -237,10 +225,7 @@ else:
                 astra_day_sum=0
                 biontech_day_sum=0
                 moderna_day_sum=0
-    # kum_sum=kum_sum+day_sum
-    # for j in range(last_i,i+1):
-    #     data_supply['dosen_gesamt'][j]=day_sum
-    #     data_supply.dosen_kummulativ[j]=kum_sum
+  
     
     
     kum_sum=kum_sum+day_sum
@@ -286,12 +271,6 @@ else:
     #print(model.summary())
     
     GAMMA = 0.95
-    """Working Code"""
-    
-    #prediction_plot = pd.DataFrame({"days": np.linspace(1, days+10, days+10)})
-    #prediction_plot["dosen_differenz_zum_vortag"] = model.predict(prediction_plot)
-    # prediction_plot["confidence"], prediction_plot["prediction"] = \
-    #     conf_pred_band_ex(prediction_plot, poly, model, alpha=1-GAMMA)
     
     """Experiment"""
     prediction_plot = pd.DataFrame({"days": np.linspace(1, days+forecast, days+forecast)})
@@ -318,20 +297,21 @@ else:
     gs = GridSpec(4, 2, figure=fig1)
     
     fig1.suptitle("Impfstatistik mit Daten vom: "+data.date[current_day], fontsize=24)
-    #ax1,ax2,ax3,ax4=fig1.subplots(4,2,1)
-    
-    
+        
     
     pie_label=['Keine Impfung','Erstimpfung','Vollständige Impfung']
     pie_values=[100-np.round(data.impf_quote_erst[current_day]*100,1),\
                 np.round(data.impf_quote_erst[current_day]*100-data.impf_quote_voll[current_day]*100,1),np.round(data.impf_quote_voll[current_day]*100,1)]
     explode = (0, 0.1, 0.1,)
+    
+    
+    """Pie Chart"""
     ax1 = fig1.add_subplot(gs[0, 0])
     ax1.pie(pie_values,labels=pie_label,autopct='%0.1f%%',shadow=True,startangle=90,explode=explode)
     ax1.set_title('Impffortschritt der Gesamtbevölkerung')
     
     
-    
+    """Hersteller Lagerbestand Chart"""
     ax2 = fig1.add_subplot(gs[0, 1])
     ax2.bar(x=['Biontech','Astrazeneca','Moderna','Johnson'],\
                 height=[max(data_supply.biontech_gesamt)/1e6,\
@@ -374,7 +354,7 @@ else:
 
     
     
-        
+    """Tägliche Dosen """   
     ax3 = fig1.add_subplot(gs[1, :])
     ax3.set_title("Täglich verabreichte Dosen")
     ax3.plot(data.date,data.dosen_differenz_zum_vortag/1e3,label='Tägliche verabreichte Dosen')
@@ -401,6 +381,8 @@ else:
     ax3.set_ylabel('Tägliche Impfungen in Tausend')
     
     
+    
+    """Kummulative Darstellung der verabreichten Dosen """
     ax4 = fig1.add_subplot(gs[2, :])
     ax4.plot(data.date,data.dosen_kumulativ/1e6,label='Anzahl verabreichter Dosen gesamt')
     ax4.text((current_day-current_day/12),data.dosen_kumulativ[current_day]/1e6,round(data.dosen_kumulativ[current_day]/1e6,3))
@@ -427,6 +409,8 @@ else:
     #         verticalalignment='top', bbox=props)
     ax4.grid(True)
     
+    
+    """Lieferung nach Hersteller """
     ax5 = fig1.add_subplot(gs[3, :])
     ax5.set_title('Lieferungen nach Hersteller in Mio.')
     ax5.plot(data.date,np.zeros(len(data.date)))
@@ -452,10 +436,11 @@ else:
     
  
     
-    num_xlabel=28
-    ax3.xaxis.set_major_locator(plt.MaxNLocator(num_xlabel))
-    ax4.xaxis.set_major_locator(plt.MaxNLocator(num_xlabel))
-    ax5.xaxis.set_major_locator(plt.MaxNLocator(num_xlabel))
+    
+    tick_spacing=7
+    ax3.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
+    ax4.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
+    ax5.xaxis.set_major_locator(ticker.MultipleLocator(tick_spacing))
     
     #fig1.autofmt_xdate(rotation=45)  
     angle=90
@@ -465,5 +450,5 @@ else:
     fig1.tight_layout(pad=3.0)
     plt.savefig('Grafiken/Aktuelle_Impfstatistik.pdf')       
     plt.savefig('C:/Users/aidac/Dropbox/Impfstatistik/Aktuelle_Impfstatistik.pdf')       
-    # plt.savefig('Grafiken/Impfstatistik_'+data_date+'.pdf')       
+    
         
