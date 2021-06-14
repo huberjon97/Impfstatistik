@@ -64,21 +64,7 @@ def conf_pred_band_ex(_regress_ex, _poly, _model, alpha=0.05):
 
 
 
-headers=['date','dosen_kumulativ','dosen_differenz_zum_vortag',\
-         'dosen_erst_differenz_zum_vortag','dosen_zweit_differenz_zum_vortag',\
-         'dosen_biontech_kumulativ','dosen_moderna_kumulativ',\
-         'dosen_astrazeneca_kumulativ','personen_erst_kumulativ',\
-         'personen_voll_kumulativ','impf_quote_erst','impf_quote_voll',\
-         'indikation_alter_dosen','indikation_beruf_dosen',\
-         'indikation_medizinisch_dosen','indikation_pflegeheim_dosen',\
-         'indikation_alter_erst','indikation_beruf_erst',\
-         'indikation_medizinisch_erst','indikation_pflegeheim_erst',\
-         'indikation_alter_voll','indikation_beruf_voll',\
-         'indikation_medizinisch_voll','indikation_pflegeheim_voll',\
-         'dosen_dim_kumulativ','dosen_kbv_kumulativ','dosen_johnson_kumulativ',\
-         'dosen_biontech_erst_kumulativ','dosen_biontech_zweit_kumulativ',\
-         'dosen_moderna_erst_kumulativ','dosen_moderna_zweit_kumulativ',\
-         'dosen_astrazeneca_erst_kumulativ','dosen_astrazeneca_zweit_kumulativ']
+headers=['date','dosen_kumulativ','dosen_differenz_zum_vortag','dosen_erst_differenz_zum_vortag','dosen_zweit_differenz_zum_vortag','dosen_biontech_kumulativ','dosen_moderna_kumulativ','dosen_astrazeneca_kumulativ','personen_erst_kumulativ','personen_voll_kumulativ','impf_quote_erst','impf_quote_voll','indikation_alter_dosen','indikation_beruf_dosen','indikation_medizinisch_dosen','indikation_pflegeheim_dosen','indikation_alter_erst','indikation_beruf_erst','indikation_medizinisch_erst','indikation_pflegeheim_erst','indikation_alter_voll','indikation_beruf_voll','indikation_medizinisch_voll','indikation_pflegeheim_voll','dosen_dim_kumulativ','dosen_kbv_kumulativ','dosen_johnson_kumulativ','dosen_biontech_erst_kumulativ','dosen_biontech_zweit_kumulativ','dosen_moderna_erst_kumulativ','dosen_moderna_zweit_kumulativ','dosen_astrazeneca_erst_kumulativ','dosen_astrazeneca_zweit_kumulativ','dosen_erst_kumulativ','dosen_zweit_kumulativ']
 
 data=pd.read_csv('downloaded.csv',sep='	',names=headers,header=0)
 
@@ -88,12 +74,12 @@ today=date.today()
 last_day_data= today.strftime("%m_%d_%Y")
 #last_day_data=data.date[len(data)-1]
 
-header_supply=['date','impfstoff','region','dosen']
+header_supply=['date','impfstoff','region','dosen','einrichtung']
 data_supply=pd.read_csv('downloaded_lieferung.csv',sep='	',names=header_supply,header=0)
 last_day_supply=data_supply.date[len(data_supply)-1]
 
 
-# Neue Daten herunterladen
+""" Neue Daten herunterladen"""
 
 impfung_tsv_url='https://impfdashboard.de/static/data/germany_vaccinations_timeseries_v2.tsv'
 
@@ -118,13 +104,13 @@ csv_file.close()
 data=pd.read_csv('downloaded.csv',sep='	',names=headers,header=0)
 
 
-header_supply=['date','impfstoff','region','dosen']
+header_supply=['date','impfstoff','region','dosen','einrichtung']
 data_supply=pd.read_csv('downloaded_lieferung.csv',sep='	',names=header_supply,header=0)
 
 if ((data.date[len(data)-1]==last_day_data) and (data_supply.date[len(data_supply)-1]==last_day_supply)):
     print("Keine neuen Daten")
 else:
-    #data_supply = data_supply.sort_values(by=["date","impfstoff"])
+    data_supply = data_supply.sort_values(by=["date","impfstoff"])
     data_supply['dosen_gesamt']=0
     data_supply['dosen_kummulativ']=0
     data_supply['biontech']=0
@@ -170,81 +156,103 @@ else:
     
     i=0
     last_i=i
+    data_dates=data.date.unique()   
+    dates=data_supply.date.unique()
     
-    for i in data_supply.index:
-        if data_supply.date[i]==cur_day:
-            day_sum=day_sum+data_supply.dosen[i]
-            if data_supply.impfstoff[i] == 'comirnaty':
-                biontech_day_sum=biontech_day_sum+data_supply.dosen[i]
-            elif data_supply.impfstoff[i] == 'moderna':
-                moderna_day_sum=moderna_day_sum+data_supply.dosen[i]
-            elif data_supply.impfstoff[i] == 'astra':
-                astra_day_sum=astra_day_sum+data_supply.dosen[i]
-            elif data_supply.impfstoff[i] == 'johnson':
-                johnson_day_sum=johnson_day_sum+data_supply.dosen[i]
-        else:
-            kum_sum=kum_sum+day_sum
-            biontech_kum_sum=biontech_kum_sum+biontech_day_sum
-            astra_kum_sum=astra_kum_sum+astra_day_sum
-            moderna_kum_sum=moderna_kum_sum+moderna_day_sum
-            johnson_kum_sum=johnson_kum_sum+johnson_day_sum
+    for i in dates:
+    #if i==cur_day:
+        day_sum=data_supply.loc[data_supply.date==i].dosen.sum()
+        biontech_day_sum=data_supply.loc[((data_supply.date==i)&(data_supply.impfstoff=='comirnaty'))].dosen.sum()
+        moderna_day_sum=data_supply.loc[((data_supply.date==i)&(data_supply.impfstoff=='moderna'))].dosen.sum()
+        astra_day_sum=data_supply.loc[((data_supply.date==i)&(data_supply.impfstoff=='astra'))].dosen.sum()
+        johnson_day_sum=data_supply.loc[((data_supply.date==i)&(data_supply.impfstoff=='johnson'))].dosen.sum()
+        
+        
+        # if data_supply.impfstoff[i] == 'comirnaty':
+        #     biontech_day_sum=biontech_day_sum+data_supply.dosen[i]
+        # elif data_supply.impfstoff[i] == 'moderna':
+        #     moderna_day_sum=moderna_day_sum+data_supply.dosen[i]
+        # elif data_supply.impfstoff[i] == 'astra':
+        #     astra_day_sum=astra_day_sum+data_supply.dosen[i]
+        # elif data_supply.impfstoff[i] == 'johnson':
+        #     johnson_day_sum=johnson_day_sum+data_supply.dosen[i]
+    #else:
+        kum_sum=kum_sum+day_sum
+        biontech_kum_sum=biontech_kum_sum+biontech_day_sum
+        astra_kum_sum=astra_kum_sum+astra_day_sum
+        moderna_kum_sum=moderna_kum_sum+moderna_day_sum
+        johnson_kum_sum=johnson_kum_sum+johnson_day_sum
+        
+        
+        data_supply.loc[(data_supply.date==i),'dosen_gesamt']=day_sum
+        data_supply.loc[(data_supply.date==i),'dosen_kummulativ']=kum_sum
+        data_supply.loc[(data_supply.date==i),'biontech']=biontech_day_sum
+        data_supply.loc[(data_supply.date==i),'astra']=astra_day_sum
+        data_supply.loc[(data_supply.date==i),'moderna']=moderna_day_sum
+        data_supply.loc[(data_supply.date==i),'johnson']=johnson_day_sum
+       
+        data_supply.loc[(data_supply.date==i),'biontech_gesamt']=biontech_kum_sum
+        data_supply.loc[(data_supply.date==i),'astra_gesamt']=astra_kum_sum
+        data_supply.loc[(data_supply.date==i),'moderna_gesamt']=moderna_kum_sum
+        data_supply.loc[(data_supply.date==i),'johnson_gesamt']=johnson_kum_sum
+        
+        
+        #for j in range(last_i,i):
+            # data_supply.loc[j,'dosen_gesamt']=day_sum
+            # data_supply.loc[j,'dosen_kummulativ']=kum_sum
+            # data_supply.loc[j,'biontech']=biontech_day_sum
+            # data_supply.loc[j,'astra']=astra_day_sum
+            # data_supply.loc[j,'moderna']=moderna_day_sum
+            # data_supply.loc[j,'johnson']=johnson_day_sum
             
-            for j in range(last_i,i):
-                data_supply.loc[j,'dosen_gesamt']=day_sum
-                data_supply.loc[j,'dosen_kummulativ']=kum_sum
-                data_supply.loc[j,'biontech']=biontech_day_sum
-                data_supply.loc[j,'astra']=astra_day_sum
-                data_supply.loc[j,'moderna']=moderna_day_sum
-                data_supply.loc[j,'johnson']=johnson_day_sum
-                
-                data_supply.loc[j,'biontech_gesamt']=biontech_kum_sum
-                data_supply.loc[j,'astra_gesamt']=astra_kum_sum
-                data_supply.loc[j,'moderna_gesamt']=moderna_kum_sum
-                data_supply.loc[j,'johnson_gesamt']=johnson_kum_sum
-                
-            cur_day=data_supply.date[i]
-            day_sum=data_supply.dosen[i]
-            last_i=i
-            if data_supply.impfstoff[i] == 'comirnaty':
-                biontech_day_sum=data_supply.dosen[i]
-                astra_day_sum=0
-                moderna_day_sum=0
-                johnson_day_sum=0
-            elif data_supply.impfstoff[i] == 'moderna':
-                moderna_day_sum=data_supply.dosen[i]
-                biontech_day_sum=0
-                astra_day_sum=0
-                johnson_day_sum=0
-            elif data_supply.impfstoff[i] == 'astra':
-                astra_day_sum=data_supply.dosen[i]
-                biontech_day_sum=0
-                moderna_day_sum=0
-                johnson_day_sum=0
-            elif data_supply.impfstoff[i] == 'johnson':
-                johnson_day_sum=data_supply.dosen[i]
-                astra_day_sum=0
-                biontech_day_sum=0
-                moderna_day_sum=0
+            # data_supply.loc[j,'biontech_gesamt']=biontech_kum_sum
+            # data_supply.loc[j,'astra_gesamt']=astra_kum_sum
+            # data_supply.loc[j,'moderna_gesamt']=moderna_kum_sum
+            # data_supply.loc[j,'johnson_gesamt']=johnson_kum_sum
+            
+        # cur_day=data_supply.date[i]
+        # day_sum=data_supply.dosen[i]
+        # last_i=i
+        # if data_supply.impfstoff[i] == 'comirnaty':
+        #     biontech_day_sum=data_supply.dosen[i]
+        #     astra_day_sum=0
+        #     moderna_day_sum=0
+        #     johnson_day_sum=0
+        # elif data_supply.impfstoff[i] == 'moderna':
+        #     moderna_day_sum=data_supply.dosen[i]
+        #     biontech_day_sum=0
+        #     astra_day_sum=0
+        #     johnson_day_sum=0
+        # elif data_supply.impfstoff[i] == 'astra':
+        #     astra_day_sum=data_supply.dosen[i]
+        #     biontech_day_sum=0
+        #     moderna_day_sum=0
+        #     johnson_day_sum=0
+        # elif data_supply.impfstoff[i] == 'johnson':
+        #     johnson_day_sum=data_supply.dosen[i]
+        #     astra_day_sum=0
+        #     biontech_day_sum=0
+        #     moderna_day_sum=0
   
     
     
-    kum_sum=kum_sum+day_sum
-    biontech_kum_sum=biontech_kum_sum+biontech_day_sum
-    astra_kum_sum=astra_kum_sum+astra_day_sum
-    moderna_kum_sum=moderna_kum_sum+moderna_day_sum
-    johnson_kum_sum=johnson_kum_sum+johnson_day_sum
+    # kum_sum=kum_sum+day_sum
+    # biontech_kum_sum=biontech_kum_sum+biontech_day_sum
+    # astra_kum_sum=astra_kum_sum+astra_day_sum
+    # moderna_kum_sum=moderna_kum_sum+moderna_day_sum
+    # johnson_kum_sum=johnson_kum_sum+johnson_day_sum
     
-    for j in range(last_i,i+1):
-        data_supply.loc[j,'dosen_gesamt']=day_sum
-        data_supply.loc[j,'dosen_kummulativ']=kum_sum
-        data_supply.loc[j,'biontech']=biontech_day_sum
-        data_supply.loc[j,'astra']=astra_day_sum
-        data_supply.loc[j,'moderna']=moderna_day_sum
-        data_supply.loc[j,'johnson']=johnson_day_sum
-        data_supply.loc[j,'biontech_gesamt']=biontech_kum_sum
-        data_supply.loc[j,'astra_gesamt']=astra_kum_sum
-        data_supply.loc[j,'moderna_gesamt']=moderna_kum_sum
-        data_supply.loc[j,'johnson_gesamt']=johnson_kum_sum
+    # for j in range(last_i,i+1):
+    #     data_supply.loc[j,'dosen_gesamt']=day_sum
+    #     data_supply.loc[j,'dosen_kummulativ']=kum_sum
+    #     data_supply.loc[j,'biontech']=biontech_day_sum
+    #     data_supply.loc[j,'astra']=astra_day_sum
+    #     data_supply.loc[j,'moderna']=moderna_day_sum
+    #     data_supply.loc[j,'johnson']=johnson_day_sum
+    #     data_supply.loc[j,'biontech_gesamt']=biontech_kum_sum
+    #     data_supply.loc[j,'astra_gesamt']=astra_kum_sum
+    #     data_supply.loc[j,'moderna_gesamt']=moderna_kum_sum
+    #     data_supply.loc[j,'johnson_gesamt']=johnson_kum_sum
         
     kum_sum_check=biontech_kum_sum+astra_kum_sum+moderna_kum_sum+johnson_kum_sum
     if kum_sum== kum_sum_check:
@@ -265,7 +273,7 @@ else:
         for j in range(rest_days+1):
             data.loc[j,'mean_weekly']=curr_mean
     
-    poly = ols("mean_weekly ~ 0+I(days**2)+I(days*3)+I(days**4)+I(days**5)", data)
+    poly = ols("mean_weekly ~ 0+I(days**2)+I(days*3)+I(days**5)", data)
     model = poly.fit()
     b=model.params
     #print(model.summary())
@@ -290,7 +298,7 @@ else:
     moderna_storage=np.abs(data.dosen_moderna_kumulativ[days-1]-max(data_supply.moderna_gesamt))
     johnson_storage=np.abs(data.dosen_johnson_kumulativ[days-1]-max(data_supply.johnson_gesamt))
     
-    
+    blue_plot='#1f77b4'
     
     fig1=plt.figure(1,figsize=(10,25))
     
@@ -354,16 +362,19 @@ else:
 
     
     
-    """Tägliche Dosen """   
+    """Tägliche Dosen """
     ax3 = fig1.add_subplot(gs[1, :])
     ax3.set_title("Täglich verabreichte Dosen")
-    ax3.plot(data.date,data.dosen_differenz_zum_vortag/1e3,label='Tägliche verabreichte Dosen')
-    ax3.step(data.date,data.mean_weekly/1e3,label='7-Tages Durchschnitt der täglich verabreichten Dosen')
-    ax3.plot(data.date,prediction_plot.mean_weekly[0:days]/1e3,label='Ausgleichsfunktion')
-    ax3.text((current_day-current_day/12),(data.mean_weekly[current_day]+0.025*data.mean_weekly[current_day])/1e3,round(data.mean_weekly[current_day]/1e3,3),color='orange')
-    ax3.text((current_day-current_day/12),(data.mean_weekly[current_day]-0.1*data.mean_weekly[current_day])/1e3,round(prediction_plot.mean_weekly[current_day]/1e3,3),color='g')
-    ax3.text((current_day-current_day/12),(data.mean_weekly[current_day]+0.1*data.mean_weekly[current_day])/1e3,round(data.dosen_differenz_zum_vortag[current_day]/1e3,3),color='darkblue')
-    ax3.legend()
+    ax3.plot(data_dates,data.dosen_differenz_zum_vortag/1e3,label='Aktuell tägliche Dosen:            '+str(data.dosen_differenz_zum_vortag[current_day]))
+    ax3.plot(data_dates,data.dosen_zweit_differenz_zum_vortag/1e3,'--',c=blue_plot,label='Davon Zweitimpfungen:          '+str(data.dosen_zweit_differenz_zum_vortag[current_day]))
+    ax3.step(data_dates,data.mean_weekly/1e3,label='7-Tages Durchschnitt der\n täglich verabreichten Dosen:  '+str(int(data.mean_weekly[current_day])))
+    ax3.plot(data_dates,prediction_plot.mean_weekly[0:days].unique()/1e3,label='Ausgleichsfunktion Mittelwert: '+str(int(prediction_plot.mean_weekly[current_day])))
+    
+    
+    # ax3.text((current_day-current_day/12),(data.mean_weekly[current_day]+0.025*data.mean_weekly[current_day])/1e3,round(data.mean_weekly[current_day]/1e3,3),color='orange')
+    # ax3.text((current_day-current_day/12),(data.mean_weekly[current_day]-0.1*data.mean_weekly[current_day])/1e3,round(prediction_plot.mean_weekly[current_day]/1e3,3),color='g')
+    # ax3.text((current_day-current_day/12),(data.mean_weekly[current_day]+0.1*data.mean_weekly[current_day])/1e3,round(data.dosen_differenz_zum_vortag[current_day]/1e3,3),color='darkblue')
+    ax3.legend(labelcolor='linecolor')
     # ax3.plot(df_date.date,(prediction_plot.mean_weekly)/1e3)
     # ax3.plot(df_date.date,(prediction_plot.mean_weekly + prediction_plot.prediction)/1e3)
     # ax3.plot(df_date.date,(prediction_plot.mean_weekly - prediction_plot.prediction)/1e3)
@@ -384,22 +395,29 @@ else:
     
     """Kummulative Darstellung der verabreichten Dosen """
     ax4 = fig1.add_subplot(gs[2, :])
-    ax4.plot(data.date,data.dosen_kumulativ/1e6,label='Anzahl verabreichter Dosen gesamt')
-    ax4.text((current_day-current_day/12),data.dosen_kumulativ[current_day]/1e6,round(data.dosen_kumulativ[current_day]/1e6,3))
-    ax4.plot(data.date,data.personen_erst_kumulativ/1e6,label='Anzahl Erstimpfung')
-    ax4.text((current_day-current_day/12),data.personen_erst_kumulativ[current_day]/1e6,round(data.personen_erst_kumulativ[current_day]/1e6,3))
-    ax4.plot(data.date,data.personen_voll_kumulativ/1e6,label='Anzahl Zweitimpfung')
-    ax4.text((current_day-current_day/12),data.personen_voll_kumulativ[current_day]/1e6,round(data.personen_voll_kumulativ[current_day]/1e6,3))
+    
+    if days==len(data.personen_erst_kumulativ.unique()):
+        ax4.plot(data_dates,data.dosen_kumulativ.unique()/1e6,label='Anzahl verabreichter Dosen gesamt: '+str(round(data.dosen_kumulativ[current_day]/1e6,1)))
+        ax4.plot(data_dates,data.dosen_erst_kumulativ.unique()/1e6,label='Anzahl Erstimpfung:                           '+str(round(data.personen_erst_kumulativ[current_day]/1e6,1)))
+        ax4.plot(data_dates,data.personen_voll_kumulativ.unique()/1e6,label='Anzahl Zweitimpfung:                        '+str(round(data.personen_voll_kumulativ[current_day]/1e6,1)))
+    else:    
+        ax4.plot(data.date,data.dosen_kumulativ/1e6,label='Anzahl verabreichter Dosen gesamt')
+        ax4.plot(data.date,data.dosen_erst_kumulativ/1e6,label='Anzahl Erstimpfung')
+        ax4.plot(data.date,data.personen_voll_kumulativ/1e6,label='Anzahl Zweitimpfung')
+    
+    # ax4.text((current_day-current_day/12),data.dosen_kumulativ[current_day]/1e6,round(data.dosen_kumulativ[current_day]/1e6,3),ha='left', va='bottom',color='darkblue')
+    # ax4.text((current_day-current_day/12),data.personen_erst_kumulativ[current_day]/1e6,round(data.personen_erst_kumulativ[current_day]/1e6,3),horizontalalignment='left', va='bottom',color='orange')
+    # ax4.text((current_day-current_day/12),data.personen_voll_kumulativ[current_day]/1e6,round(data.personen_voll_kumulativ[current_day]/1e6,3),ha='left', va='bottom',color='darkgreen')
     #ax4.plot(())
     
-    ax4.bar(data_supply.date[16:],data_supply.dosen_kummulativ[16:]/1e6,label='Anzahl gesamte Lieferungen')
-    ax4.text((current_day-current_day/12),data_supply.dosen_kummulativ[len_supply-1]/1e6,round(data_supply.dosen_kummulativ[len_supply-1]/1e6,3))
+    ax4.bar(dates,data_supply.dosen_kummulativ.unique()/1e6,alpha=0.5,label='Anzahl gesamte Lieferungen:            '+str(round(data_supply.dosen_kummulativ[len_supply-1]/1e6,1)))
+    # ax4.text((current_day-current_day/12),data_supply.dosen_kummulativ[len_supply-1]/1e6,round(data_supply.dosen_kummulativ[len_supply-1]/1e6,3))
     
     
     ax4.set_title("Durchgeführten Impfungen Kummulativ / Gelieferte Dosen kummulativ")
     ax4.set_xlabel('Datum')
     ax4.set_ylabel('Impfungen in Millionen')
-    ax4.legend()
+    ax4.legend(labelcolor='linecolor')
     # percent='\n'.join(('Impfung Bevölkerung BRD in %:\n',\
     #                   'Erstimpfung: %.2f '%(data.impf_quote_erst[current_day]*100, ),\
     #                   'Vollständig:   %.2f'%(data.impf_quote_voll[current_day]*100, )))
